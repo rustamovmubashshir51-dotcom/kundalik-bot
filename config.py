@@ -1,14 +1,11 @@
-import os
-from dotenv import load_dotenv
+BOT_TOKEN = "8396976553:AAHZf4wu-GAyOoV__OcrH_Iz1PCHW-_mLsk"
 
-load_dotenv()
+ADMIN_ID = 8040114153
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "8040114153"))
-DB_NAME = os.getenv("DB_NAME", "bot.db")
-TIMEZONE = os.getenv("TIMEZONE", "Asia/Tashkent")
+TIMEZONE = "Asia/Tashkent"
 
-SUNDAY_TEXT = (
-    "Assalomu alaykum.\n\n"
-    "Iltimos, Kundalik.com ga kirib screenshot tashlang."
-)
+SUNDAY_TEXT = """
+📢 Eslatma!
+
+Kundalik.com ga kirib screenshot yuboring.
+"""
