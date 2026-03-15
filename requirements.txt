@@ -2,3 +2,4 @@ aiogram
 aiosqlite
 apscheduler
 python-dotenv
+tzdata
