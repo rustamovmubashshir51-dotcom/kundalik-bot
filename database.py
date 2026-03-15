@@ -1,138 +1,98 @@
-import aiosqlite
+import sqlite3
 from datetime import datetime
-from config import DB_NAME
+
+conn = sqlite3.connect("bot.db")
+cursor = conn.cursor()
 
 
 async def init_db():
-    async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                full_name TEXT,
-                username TEXT,
-                joined_at TEXT
-            )
-        """)
 
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS submissions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                sent_at TEXT,
-                photo_file_id TEXT
-            )
-        """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        user_id INTEGER PRIMARY KEY,
+        full_name TEXT,
+        username TEXT
+    )
+    """)
 
-        await db.commit()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS submissions(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        date TEXT
+    )
+    """)
+
+    conn.commit()
 
 
-async def add_user(user_id: int, full_name: str, username: str | None):
-    async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("""
-            INSERT OR IGNORE INTO users (user_id, full_name, username, joined_at)
-            VALUES (?, ?, ?, ?)
-        """, (
-            user_id,
-            full_name,
-            username,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ))
-        await db.commit()
+async def add_user(user_id, full_name, username):
+
+    cursor.execute(
+        "INSERT OR IGNORE INTO users VALUES(?,?,?)",
+        (user_id, full_name, username)
+    )
+
+    conn.commit()
 
 
-async def save_submission(user_id: int, photo_file_id: str):
-    async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("""
-            INSERT INTO submissions (user_id, sent_at, photo_file_id)
-            VALUES (?, ?, ?)
-        """, (
-            user_id,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            photo_file_id
-        ))
-        await db.commit()
+async def save_submission(user_id):
 
-
-async def get_total_users() -> int:
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT COUNT(*) FROM users") as cursor:
-            row = await cursor.fetchone()
-            return row[0] if row else 0
-
-
-async def get_total_submissions() -> int:
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT COUNT(*) FROM submissions") as cursor:
-            row = await cursor.fetchone()
-            return row[0] if row else 0
-
-
-async def get_today_submissions() -> int:
     today = datetime.now().strftime("%Y-%m-%d")
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("""
-            SELECT COUNT(*) FROM submissions
-            WHERE date(sent_at) = ?
-        """, (today,)) as cursor:
-            row = await cursor.fetchone()
-            return row[0] if row else 0
+
+    cursor.execute(
+        "INSERT INTO submissions(user_id,date) VALUES(?,?)",
+        (user_id, today)
+    )
+
+    conn.commit()
 
 
-async def get_all_user_ids() -> list[int]:
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT user_id FROM users") as cursor:
-            rows = await cursor.fetchall()
-            return [row[0] for row in rows]
+async def get_all_user_ids():
+
+    cursor.execute("SELECT user_id FROM users")
+
+    return [i[0] for i in cursor.fetchall()]
 
 
-async def get_unique_submitters_count() -> int:
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("""
-            SELECT COUNT(DISTINCT user_id) FROM submissions
-        """) as cursor:
-            row = await cursor.fetchone()
-            return row[0] if row else 0
+async def get_today_sender_ids():
 
-
-async def get_today_unique_submitters_count() -> int:
     today = datetime.now().strftime("%Y-%m-%d")
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("""
-            SELECT COUNT(DISTINCT user_id)
-            FROM submissions
-            WHERE date(sent_at) = ?
-        """, (today,)) as cursor:
-            row = await cursor.fetchone()
-            return row[0] if row else 0
+
+    cursor.execute(
+        "SELECT DISTINCT user_id FROM submissions WHERE date=?",
+        (today,)
+    )
+
+    return [i[0] for i in cursor.fetchall()]
 
 
-async def get_today_sender_ids() -> list[int]:
-    today = datetime.now().strftime("%Y-%m-%d")
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("""
-            SELECT DISTINCT user_id
-            FROM submissions
-            WHERE date(sent_at) = ?
-        """, (today,)) as cursor:
-            rows = await cursor.fetchall()
-            return [row[0] for row in rows]
+async def get_total_users():
+
+    cursor.execute("SELECT COUNT(*) FROM users")
+
+    return cursor.fetchone()[0]
 
 
-async def get_user_info(user_id: int):
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("""
-            SELECT user_id, full_name, username
-            FROM users
-            WHERE user_id = ?
-        """, (user_id,)) as cursor:
-            return await cursor.fetchone()
+async def get_total_submissions():
+
+    cursor.execute("SELECT COUNT(*) FROM submissions")
+
+    return cursor.fetchone()[0]
 
 
 async def get_all_users_info():
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("""
-            SELECT user_id, full_name, username
-            FROM users
-            ORDER BY joined_at DESC
-        """) as cursor:
-            return await cursor.fetchall()
+
+    cursor.execute("SELECT * FROM users")
+
+    return cursor.fetchall()
+
+
+async def get_user_info(user_id):
+
+    cursor.execute(
+        "SELECT * FROM users WHERE user_id=?",
+        (user_id,)
+    )
+
+    return cursor.fetchone()
